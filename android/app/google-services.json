@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "185566733104",
+    "project_id": "nivora-a9187",
+    "storage_bucket": "nivora-a9187.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:185566733104:android:91b37e610e3709a019def5",
+        "android_client_info": {
+          "package_name": "com.nivora.app.nivora"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBuYAX0co4B45S5TBkjfJyDByprK2mkdSk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

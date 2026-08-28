@@ -1,0 +1,39 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'services/firebase_service.dart';
+import 'providers/faculty_provider.dart';
+import 'providers/ui_provider.dart';
+import 'utils/theme.dart';
+import 'screens/home_shell.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await FirebaseService.initialize();
+  
+  runApp(const NivoraApp());
+}
+
+class NivoraApp extends StatelessWidget {
+  const NivoraApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(
+          create: (_) => FacultyProvider()..loadAll(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => UiProvider(),
+        ),
+      ],
+      child: MaterialApp(
+        title: 'Nivora',
+        theme: AppTheme.lightTheme,
+        darkTheme: AppTheme.darkTheme,
+        themeMode: ThemeMode.system,
+        home: const HomeShell(),
+      ),
+    );
+  }
+}
