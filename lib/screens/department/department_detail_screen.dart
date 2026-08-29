@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/department.dart';
+import '../../utils/theme.dart';
 import '../directory/faculty_list_screen.dart';
 
 class DepartmentDetailScreen extends StatelessWidget {
@@ -43,7 +44,9 @@ class DepartmentDetailScreen extends StatelessWidget {
               title: 'Time Table',
               isPrimary: false,
               onTap: () {
-                // Navigate to timetable for this department
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Department timetables coming soon!')),
+                );
               },
             ),
           ],
@@ -58,8 +61,8 @@ class DepartmentDetailScreen extends StatelessWidget {
     required bool isPrimary,
     required VoidCallback onTap,
   }) {
-    final bgColor = isPrimary ? Colors.white : const Color(0xFF1C1C1E);
-    final textColor = isPrimary ? const Color(0xFF1C1C1E) : Colors.white;
+    final bgColor = AppTheme.darkCardBg;
+    final textColor = Colors.white;
 
     return InkWell(
       onTap: onTap,
@@ -89,7 +92,7 @@ class DepartmentDetailScreen extends StatelessWidget {
             ),
             Icon(
               Icons.chevron_right_rounded,
-              color: isPrimary ? Colors.white70 : Colors.grey,
+              color: AppTheme.darkAccent,
             ),
           ],
         ),

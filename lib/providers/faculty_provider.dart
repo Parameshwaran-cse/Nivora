@@ -11,6 +11,9 @@ class FacultyProvider extends ChangeNotifier {
   List<Designation> _designations = [];
   List<Location> _locations = [];
 
+  Map<String, Department> _departmentMap = {};
+  Map<String, Designation> _designationMap = {};
+
   bool _isLoading = false;
   String? _error;
 
@@ -73,6 +76,9 @@ class FacultyProvider extends ChangeNotifier {
       _departments = results[1] as List<Department>;
       _designations = results[2] as List<Designation>;
       _locations = results[3] as List<Location>;
+
+      _departmentMap = {for (var d in _departments) d.id: d};
+      _designationMap = {for (var d in _designations) d.id: d};
     } catch (e) {
       _error = 'Failed to load data: $e';
     } finally {
@@ -113,23 +119,17 @@ class FacultyProvider extends ChangeNotifier {
       _selectedDesignationId != null ||
       _searchQuery.isNotEmpty;
 
+  /// Get department by ID
+  Department? getDepartment(String departmentId) => _departmentMap[departmentId];
+
+  /// Get designation by ID
+  Designation? getDesignation(String designationId) => _designationMap[designationId];
+
   /// Get department name by ID
-  String? getDepartmentName(String departmentId) {
-    try {
-      return _departments.firstWhere((d) => d.id == departmentId).name;
-    } catch (_) {
-      return null;
-    }
-  }
+  String? getDepartmentName(String departmentId) => _departmentMap[departmentId]?.name;
 
   /// Get designation title by ID
-  String? getDesignationTitle(String designationId) {
-    try {
-      return _designations.firstWhere((d) => d.id == designationId).title;
-    } catch (_) {
-      return null;
-    }
-  }
+  String? getDesignationTitle(String designationId) => _designationMap[designationId]?.title;
 
   /// Get location by ID
   Location? getLocation(String locationId) {

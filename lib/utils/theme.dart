@@ -101,6 +101,7 @@ class AppTheme {
   static const Color statusInClassText = Color(0xFFFF6B6B);
   static const Color statusUnknownBg = Color(0xFF2A2A2D);
   static const Color statusUnknownText = Color(0xFF9A9A9E);
+  static const Color statusWarning = Color(0xFFD9822B);
 
   // Strict dark theme per Phase 2B Part 2
   static ThemeData get darkTheme {

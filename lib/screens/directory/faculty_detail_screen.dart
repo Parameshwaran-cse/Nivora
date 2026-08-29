@@ -4,12 +4,29 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../models/faculty.dart';
 import '../../providers/faculty_provider.dart';
 import '../../utils/theme.dart';
+import '../../providers/timetable_provider.dart';
 import '../map/map_screen.dart';
+import '../timetable/faculty_timetable_screen.dart';
 
-class FacultyDetailScreen extends StatelessWidget {
+class FacultyDetailScreen extends StatefulWidget {
   final Faculty faculty;
 
   const FacultyDetailScreen({super.key, required this.faculty});
+
+  @override
+  State<FacultyDetailScreen> createState() => _FacultyDetailScreenState();
+}
+
+class _FacultyDetailScreenState extends State<FacultyDetailScreen> {
+  @override
+  void initState() {
+    super.initState();
+    if (widget.faculty.consent.allowLiveStatus) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        context.read<TimetableProvider>().fetchTimetableData(widget.faculty.id);
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -39,16 +56,16 @@ class FacultyDetailScreen extends StatelessWidget {
 
   Widget _buildProfileHeader(BuildContext context) {
     final provider = context.watch<FacultyProvider>();
-    final deptName = provider.getDepartmentName(faculty.departmentId) ?? 'Unknown Dept';
-    final designationTitle = provider.getDesignationTitle(faculty.designationId) ?? 'Unknown Designation';
+    final deptName = provider.getDepartmentName(widget.faculty.departmentId) ?? 'Unknown Dept';
+    final designationTitle = provider.getDesignationTitle(widget.faculty.designationId) ?? 'Unknown Designation';
     final subtitleText = '$deptName • $designationTitle';
 
     return Column(
       children: [
-        if (faculty.canShowPhoto && faculty.photoUrl != null && faculty.photoUrl!.isNotEmpty)
+        if (widget.faculty.canShowPhoto && widget.faculty.photoUrl != null && widget.faculty.photoUrl!.isNotEmpty)
           CircleAvatar(
             radius: 60,
-            backgroundImage: NetworkImage(faculty.photoUrl!),
+            backgroundImage: NetworkImage(widget.faculty.photoUrl!),
             backgroundColor: AppTheme.darkAccent,
           )
         else
@@ -56,8 +73,8 @@ class FacultyDetailScreen extends StatelessWidget {
             radius: 60,
             backgroundColor: AppTheme.darkAccent,
             child: Text(
-              faculty.canShowName && faculty.name.isNotEmpty 
-                  ? faculty.name[0].toUpperCase() 
+              widget.faculty.canShowName && widget.faculty.name.isNotEmpty 
+                  ? widget.faculty.name[0].toUpperCase() 
                   : '?',
               style: const TextStyle(
                 color: AppTheme.darkEmphasizedText,
@@ -68,7 +85,7 @@ class FacultyDetailScreen extends StatelessWidget {
           ),
         const SizedBox(height: 16),
         Text(
-          faculty.canShowName ? faculty.name : 'Name Hidden',
+          widget.faculty.canShowName ? widget.faculty.name : 'Name Hidden',
           style: Theme.of(context).textTheme.displayLarge?.copyWith(fontSize: 28),
           textAlign: TextAlign.center,
         ),
@@ -88,30 +105,73 @@ class FacultyDetailScreen extends StatelessWidget {
   }
 
   Widget _buildStatusBadge() {
-    if (!faculty.consent.allowLiveStatus) {
+    if (!widget.faculty.consent.allowLiveStatus) {
       return const SizedBox.shrink();
     }
 
-    // PHASE 5 PLACEHOLDER: Hardcoded to "Unknown" for now as per requirements.
-    // In Phase 5, this will evaluate today's schedule and exceptions to return Available/In Class.
-    const statusText = 'Unknown';
-    const bgColor = AppTheme.statusUnknownBg;
-    const textColor = AppTheme.statusUnknownText;
+    return Consumer<TimetableProvider>(
+      builder: (context, provider, child) {
+        if (provider.isLoading) {
+          return const SizedBox(
+            height: 24,
+            width: 24,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          );
+        }
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: const Text(
-        statusText,
-        style: TextStyle(
-          color: textColor,
-          fontWeight: FontWeight.bold,
-          fontSize: 14,
-        ),
-      ),
+        final statusText = provider.getCurrentStatus(widget.faculty);
+        Color bgColor = AppTheme.statusUnknownBg;
+        Color textColor = AppTheme.statusUnknownText;
+
+        if (statusText == 'Available') {
+          bgColor = AppTheme.statusAvailableBg;
+          textColor = AppTheme.statusAvailableText;
+        } else if (statusText == 'In Class') {
+          bgColor = AppTheme.statusInClassBg;
+          textColor = AppTheme.statusInClassText;
+        } else if (statusText != 'Unknown') {
+          // It's an exception reason like "On Leave"
+          bgColor = AppTheme.statusInClassBg; // Mapping to same severity tier
+          textColor = AppTheme.statusWarning;
+        }
+
+        return Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: bgColor,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Text(
+                statusText,
+                style: TextStyle(
+                  color: textColor,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+            if (provider.isUsingCachedData) ...[
+              const SizedBox(height: 4),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.cloud_off_rounded, size: 12, color: Colors.grey),
+                  const SizedBox(width: 4),
+                  Text(
+                    'May be outdated',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Colors.grey,
+                      fontSize: 10,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        );
+      },
     );
   }
 
@@ -124,20 +184,20 @@ class FacultyDetailScreen extends StatelessWidget {
       padding: const EdgeInsets.all(24),
       child: Column(
         children: [
-          if (faculty.canShowCabinNo) ...[
+          if (widget.faculty.canShowCabinNo) ...[
             _buildInteractiveInfoRow(
               context,
               icon: Icons.door_front_door_outlined,
               label: 'Cabin No.',
-              value: faculty.cabinNo.isEmpty ? 'Not Assigned' : faculty.cabinNo,
+              value: widget.faculty.cabinNo.isEmpty ? 'Not Assigned' : widget.faculty.cabinNo,
               showChevron: true,
               onTap: () {
-                if (faculty.locationId != null && faculty.locationId!.isNotEmpty) {
+                if (widget.faculty.locationId != null && widget.faculty.locationId!.isNotEmpty) {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (context) => MapScreen(
-                        highlightLocationId: faculty.locationId,
+                        highlightLocationId: widget.faculty.locationId,
                       ),
                     ),
                   );
@@ -150,17 +210,17 @@ class FacultyDetailScreen extends StatelessWidget {
             ),
             const Divider(color: Colors.white12, height: 32),
           ],
-          if (faculty.canShowEmail) ...[
+          if (widget.faculty.canShowEmail) ...[
             _buildInteractiveInfoRow(
               context,
               icon: Icons.email_outlined,
               label: 'Email',
-              value: faculty.email ?? 'Not Available',
+              value: widget.faculty.email ?? 'Not Available',
               onTap: () async {
-                if (faculty.email != null && faculty.email!.isNotEmpty) {
+                if (widget.faculty.email != null && widget.faculty.email!.isNotEmpty) {
                   final Uri emailUri = Uri(
                     scheme: 'mailto',
-                    path: faculty.email,
+                    path: widget.faculty.email,
                   );
                   if (await canLaunchUrl(emailUri)) {
                     await launchUrl(emailUri);
@@ -170,16 +230,16 @@ class FacultyDetailScreen extends StatelessWidget {
             ),
             const Divider(color: Colors.white12, height: 32),
           ],
-          if (faculty.canShowPhone && faculty.phone != null && faculty.phone!.isNotEmpty) ...[
+          if (widget.faculty.canShowPhone && widget.faculty.phone != null && widget.faculty.phone!.isNotEmpty) ...[
             _buildInteractiveInfoRow(
               context,
               icon: Icons.phone_outlined,
               label: 'Phone',
-              value: faculty.phone!,
+              value: widget.faculty.phone!,
               onTap: () async {
                 final Uri phoneUri = Uri(
                   scheme: 'tel',
-                  path: faculty.phone,
+                  path: widget.faculty.phone,
                 );
                 if (await canLaunchUrl(phoneUri)) {
                   await launchUrl(phoneUri);
@@ -281,7 +341,12 @@ class FacultyDetailScreen extends StatelessWidget {
       width: double.infinity,
       child: ElevatedButton(
         onPressed: () {
-          // Navigate to specific timetable in Phase 5
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => FacultyTimetableScreen(faculty: widget.faculty),
+            ),
+          );
         },
         style: ElevatedButton.styleFrom(
           backgroundColor: AppTheme.darkAccent,

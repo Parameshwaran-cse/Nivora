@@ -1,11 +1,15 @@
 class TimetableSlot {
-  final String time; // e.g., "9-10"
+  final String dayOfWeek; // 'monday', 'tuesday', etc.
+  final String startTime; // "09:00"
+  final String endTime;   // "10:00"
   final String type; // "class" / "office-hours"
   final String? subject;
   final String? room;
 
   TimetableSlot({
-    required this.time,
+    required this.dayOfWeek,
+    required this.startTime,
+    required this.endTime,
     required this.type,
     this.subject,
     this.room,
@@ -13,8 +17,10 @@ class TimetableSlot {
 
   factory TimetableSlot.fromMap(Map<String, dynamic> map) {
     return TimetableSlot(
-      time: map['time'] ?? '',
-      type: map['type'] ?? '',
+      dayOfWeek: map['dayOfWeek'] ?? 'monday',
+      startTime: map['startTime'] ?? '00:00',
+      endTime: map['endTime'] ?? '00:00',
+      type: map['type'] ?? 'class',
       subject: map['subject'],
       room: map['room'],
     );
@@ -22,7 +28,9 @@ class TimetableSlot {
 
   Map<String, dynamic> toMap() {
     return {
-      'time': time,
+      'dayOfWeek': dayOfWeek,
+      'startTime': startTime,
+      'endTime': endTime,
       'type': type,
       'subject': subject,
       'room': room,

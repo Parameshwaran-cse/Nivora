@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'services/firebase_service.dart';
 import 'providers/faculty_provider.dart';
 import 'providers/ui_provider.dart';
+import 'providers/timetable_provider.dart';
 import 'utils/theme.dart';
 import 'screens/home_shell.dart';
 
@@ -25,6 +26,9 @@ class NivoraApp extends StatelessWidget {
         ),
         ChangeNotifierProvider(
           create: (_) => UiProvider(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => TimetableProvider(),
         ),
       ],
       child: MaterialApp(

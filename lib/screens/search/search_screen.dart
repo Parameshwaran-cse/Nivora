@@ -122,18 +122,9 @@ class _SearchScreenState extends State<SearchScreen> {
     // but we can double check. Also handled by the backend query usually.
     if (!faculty.consent.given) return const SizedBox.shrink();
 
-    final deptName = provider.getDepartmentName(faculty.departmentId) ?? 'Unknown Dept';
     final designationTitle = provider.getDesignationTitle(faculty.designationId) ?? 'Unknown';
-
-    // Disambiguation formatting: "Department • Designation"
-    // Wait, the mockup says "CSE • HOD". We might want the short code if available,
-    // but the Department model has `shortCode`. Let's assume we can fetch it, 
-    // or just use deptName if we can't.
-    final department = provider.departments.firstWhere(
-      (d) => d.id == faculty.departmentId, 
-      orElse: () => provider.departments.first, // fallback
-    );
-    final shortDept = (department.id == faculty.departmentId) ? department.shortCode : deptName;
+    final department = provider.getDepartment(faculty.departmentId);
+    final shortDept = department?.shortCode ?? 'Unknown Dept';
 
     final subtitleText = '$shortDept • $designationTitle';
 

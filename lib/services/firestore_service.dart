@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import '../models/models.dart';
 
 /// Firestore data access layer
@@ -18,6 +19,21 @@ class FirestoreService {
   CollectionReference get _exceptionsRef => _firestore.collection('timetableExceptions');
   CollectionReference get _auditLogRef => _firestore.collection('auditLog');
 
+  /// Helper to get data with a short timeout, falling back to cache if offline
+  Future<QuerySnapshot> _getWithTimeout(Query query) async {
+    // Check if device is completely offline upfront
+    final connectivity = await Connectivity().checkConnectivity();
+    if (connectivity.contains(ConnectivityResult.none)) {
+      return await query.get(const GetOptions(source: Source.cache));
+    }
+
+    try {
+      return await query.get(const GetOptions(source: Source.serverAndCache)).timeout(const Duration(seconds: 5));
+    } catch (_) {
+      return await query.get(const GetOptions(source: Source.cache));
+    }
+  }
+
   /// Stream of all faculty with consent.given == true
   /// Field-level visibility is handled in the UI layer per SRD Sec 8.1
   Stream<List<Faculty>> getPublicFacultyStream() {
@@ -31,9 +47,8 @@ class FirestoreService {
 
   /// One-time fetch of all faculty (for caching)
   Future<List<Faculty>> fetchAllFaculty() async {
-    final snapshot = await _facultyRef
-        .where('consent.given', isEqualTo: true)
-        .get();
+    final query = _facultyRef.where('consent.given', isEqualTo: true);
+    final snapshot = await _getWithTimeout(query);
     return snapshot.docs
         .map((doc) => Faculty.fromMap(doc.id, doc.data() as Map<String, dynamic>))
         .toList();
@@ -48,7 +63,7 @@ class FirestoreService {
 
   /// One-time fetch of all departments
   Future<List<Department>> fetchAllDepartments() async {
-    final snapshot = await _departmentsRef.get();
+    final snapshot = await _getWithTimeout(_departmentsRef);
     return snapshot.docs
         .map((doc) => Department.fromMap(doc.id, doc.data() as Map<String, dynamic>))
         .toList();
@@ -63,7 +78,7 @@ class FirestoreService {
 
   /// One-time fetch of all designations
   Future<List<Designation>> fetchAllDesignations() async {
-    final snapshot = await _designationsRef.orderBy('rank').get();
+    final snapshot = await _getWithTimeout(_designationsRef.orderBy('rank'));
     return snapshot.docs
         .map((doc) => Designation.fromMap(doc.id, doc.data() as Map<String, dynamic>))
         .toList();
@@ -78,32 +93,35 @@ class FirestoreService {
 
   /// One-time fetch of all locations
   Future<List<Location>> fetchAllLocations() async {
-    final snapshot = await _locationsRef.get();
+    final snapshot = await _getWithTimeout(_locationsRef);
     return snapshot.docs
         .map((doc) => Location.fromMap(doc.id, doc.data() as Map<String, dynamic>))
         .toList();
   }
 
   /// Get active timetable for a faculty member
-  Future<Timetable?> getActiveTimetable(String facultyId) async {
-    final snapshot = await _timetablesRef
+  Future<(Timetable?, bool)> getActiveTimetable(String facultyId) async {
+    final query = _timetablesRef
         .where('facultyId', isEqualTo: facultyId)
         .where('active', isEqualTo: true)
-        .limit(1)
-        .get();
-    if (snapshot.docs.isEmpty) return null;
+        .limit(1);
+    final snapshot = await _getWithTimeout(query);
+    final isFromCache = snapshot.metadata.isFromCache;
+    if (snapshot.docs.isEmpty) return (null, isFromCache);
     final doc = snapshot.docs.first;
-    return Timetable.fromMap(doc.id, doc.data() as Map<String, dynamic>);
+    return (Timetable.fromMap(doc.id, doc.data() as Map<String, dynamic>), isFromCache);
   }
 
   /// Get timetable exceptions for a faculty member
-  Future<List<TimetableException>> getTimetableExceptions(String facultyId) async {
-    final snapshot = await _exceptionsRef
-        .where('facultyId', isEqualTo: facultyId)
-        .get();
-    return snapshot.docs
+  Future<(List<TimetableException>, bool)> getTimetableExceptions(String facultyId) async {
+    final query = _exceptionsRef
+        .where('facultyId', isEqualTo: facultyId);
+    final snapshot = await _getWithTimeout(query);
+    final isFromCache = snapshot.metadata.isFromCache;
+    final list = snapshot.docs
         .map((doc) => TimetableException.fromMap(doc.id, doc.data() as Map<String, dynamic>))
         .toList();
+    return (list, isFromCache);
   }
 
   /// Write audit log entry (admin only)

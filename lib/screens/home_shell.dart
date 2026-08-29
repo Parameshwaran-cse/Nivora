@@ -67,6 +67,7 @@ class _HomeShellState extends State<HomeShell> {
   Widget _buildNavItem(BuildContext context, int index, int currentIndex, IconData activeIcon, IconData inactiveIcon) {
     final isSelected = currentIndex == index;
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: () {
         context.read<UiProvider>().setTabIndex(index);
       },
