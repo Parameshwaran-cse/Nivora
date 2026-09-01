@@ -6,6 +6,7 @@ import 'home/home_screen.dart';
 import 'map/map_screen.dart';
 import 'search/search_screen.dart';
 import 'timetable/timetable_screen.dart';
+import 'package:flutter/services.dart';
 import 'profile/profile_screen.dart';
 
 class HomeShell extends StatefulWidget {
@@ -29,7 +30,16 @@ class _HomeShellState extends State<HomeShell> {
   Widget build(BuildContext context) {
     final currentIndex = context.watch<UiProvider>().currentTabIndex;
 
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final shouldPop = await _showExitDialog(context) ?? false;
+        if (shouldPop) {
+          SystemNavigator.pop();
+        }
+      },
+      child: Scaffold(
       body: IndexedStack(
         index: currentIndex,
         children: _screens,
@@ -61,6 +71,7 @@ class _HomeShellState extends State<HomeShell> {
           ),
         ),
       ),
+    ),
     );
   }
 
@@ -98,6 +109,31 @@ class _HomeShellState extends State<HomeShell> {
           color: AppTheme.darkColor,
           size: 28,
         ),
+      ),
+    );
+  }
+
+  Future<bool?> _showExitDialog(BuildContext context) {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Exit App'),
+        content: const Text('Are you sure you want to leave?'),
+        backgroundColor: Theme.of(context).cardTheme.color,
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel', style: TextStyle(color: Colors.redAccent)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.darkAccent,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Leave'),
+          ),
+        ],
       ),
     );
   }

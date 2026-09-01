@@ -32,14 +32,18 @@ class FacultyListScreen extends StatelessWidget {
             return const Center(child: Text('No faculty found for this department.'));
           }
 
-          return ListView.separated(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            itemCount: facultyList.length,
-            separatorBuilder: (context, index) => const SizedBox(height: 12),
-            itemBuilder: (context, index) {
-              final faculty = facultyList[index];
-              return _buildFacultyCard(context, faculty, provider);
-            },
+          return RefreshIndicator(
+            onRefresh: () => provider.loadAll(),
+            color: AppTheme.darkAccent,
+            child: ListView.separated(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              itemCount: facultyList.length,
+              separatorBuilder: (context, index) => const SizedBox(height: 12),
+              itemBuilder: (context, index) {
+                final faculty = facultyList[index];
+                return _buildFacultyCard(context, faculty, provider);
+              },
+            ),
           );
         },
       ),

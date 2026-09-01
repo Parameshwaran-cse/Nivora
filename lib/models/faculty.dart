@@ -16,6 +16,7 @@ class Faculty {
   final Consent consent;
   final Visibility visibility;
   final DateTime lastUpdated;
+  final bool isArchived;
 
   Faculty({
     required this.id,
@@ -31,6 +32,7 @@ class Faculty {
     required this.consent,
     required this.visibility,
     required this.lastUpdated,
+    this.isArchived = false,
   });
 
   factory Faculty.fromMap(String id, Map<String, dynamic> map) {
@@ -50,6 +52,7 @@ class Faculty {
       lastUpdated: map['lastUpdated'] != null
           ? (map['lastUpdated'] as Timestamp).toDate()
           : DateTime.now(),
+      isArchived: map['isArchived'] ?? false,
     );
   }
 
@@ -67,6 +70,7 @@ class Faculty {
       'consent': consent.toMap(),
       'visibility': visibility.toMap(),
       'lastUpdated': Timestamp.fromDate(lastUpdated),
+      'isArchived': isArchived,
     };
   }
 

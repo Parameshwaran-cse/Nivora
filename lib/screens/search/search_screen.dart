@@ -76,12 +76,16 @@ class _SearchScreenState extends State<SearchScreen> {
                       );
                     }
 
-                    return ListView.separated(
-                      itemCount: results.length,
-                      separatorBuilder: (context, index) => const SizedBox(height: 12),
-                      itemBuilder: (context, index) {
-                        return _buildResultCard(context, results[index], provider);
-                      },
+                    return RefreshIndicator(
+                      onRefresh: () => provider.loadAll(),
+                      color: AppTheme.darkAccent,
+                      child: ListView.separated(
+                        itemCount: results.length,
+                        separatorBuilder: (context, index) => const SizedBox(height: 12),
+                        itemBuilder: (context, index) {
+                          return _buildResultCard(context, results[index], provider);
+                        },
+                      ),
                     );
                   },
                 ),

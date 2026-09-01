@@ -5,6 +5,9 @@ import '../../providers/ui_provider.dart';
 import '../../utils/theme.dart';
 import '../home_shell.dart';
 import 'admin_placeholder_screen.dart';
+import 'admin_departments_screen.dart';
+import 'admin_designations_screen.dart';
+import 'admin_faculty_screen.dart';
 
 class AdminDashboardScreen extends StatelessWidget {
   const AdminDashboardScreen({super.key});
@@ -85,10 +88,21 @@ class AdminDashboardScreen extends StatelessWidget {
         ),
         trailing: const Icon(Icons.chevron_right_rounded, color: Colors.white24),
         onTap: () {
+          Widget destination;
+          if (title == 'Faculty') {
+            destination = const AdminFacultyScreen();
+          } else if (title == 'Departments') {
+            destination = const AdminDepartmentsScreen();
+          } else if (title == 'Designations') {
+            destination = const AdminDesignationsScreen();
+          } else {
+            destination = AdminPlaceholderScreen(title: title);
+          }
+
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => AdminPlaceholderScreen(title: title),
+              builder: (context) => destination,
             ),
           );
         },

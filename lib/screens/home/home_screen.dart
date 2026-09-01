@@ -4,6 +4,7 @@ import '../../models/models.dart';
 import '../../models/department.dart';
 import '../../providers/faculty_provider.dart';
 import '../department/department_detail_screen.dart';
+import '../../utils/theme.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -31,14 +32,18 @@ class HomeScreen extends StatelessWidget {
                     return const Center(child: Text('No departments found.'));
                   }
 
-                  return ListView.separated(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    itemCount: provider.departments.length,
-                    separatorBuilder: (context, index) => const SizedBox(height: 12),
-                    itemBuilder: (context, index) {
-                      final department = provider.departments[index];
-                      return _buildDepartmentCard(context, department);
-                    },
+                  return RefreshIndicator(
+                    onRefresh: () => provider.loadAll(),
+                    color: AppTheme.darkAccent,
+                    child: ListView.separated(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      itemCount: provider.departments.length,
+                      separatorBuilder: (context, index) => const SizedBox(height: 12),
+                      itemBuilder: (context, index) {
+                        final department = provider.departments[index];
+                        return _buildDepartmentCard(context, department);
+                      },
+                    ),
                   );
                 },
               ),
