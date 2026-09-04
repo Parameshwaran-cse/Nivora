@@ -8,6 +8,7 @@ import 'admin_placeholder_screen.dart';
 import 'admin_departments_screen.dart';
 import 'admin_designations_screen.dart';
 import 'admin_faculty_screen.dart';
+import 'admin_timetable_faculty_list_screen.dart';
 
 class AdminDashboardScreen extends StatelessWidget {
   const AdminDashboardScreen({super.key});
@@ -39,19 +40,73 @@ class AdminDashboardScreen extends StatelessWidget {
             ),
           ],
         ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded),
+          tooltip: 'Back to Student Dashboard',
+          onPressed: () async {
+            final confirm = await showDialog<bool>(
+              context: context,
+              builder: (context) => AlertDialog(
+                backgroundColor: AppTheme.darkCardBg,
+                title: const Text('Return to Student Dashboard'),
+                content: const Text('Are you sure you want to exit the admin area? You will stay logged in.'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    child: const Text('Cancel', style: TextStyle(color: Colors.white70)),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, true),
+                    child: const Text('Return', style: TextStyle(color: AppTheme.darkAccent)),
+                  ),
+                ],
+              ),
+            );
+
+            if (confirm == true && context.mounted) {
+              context.read<UiProvider>().setTabIndex(0);
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => const HomeShell()),
+                (route) => false,
+              );
+            }
+          },
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout_rounded),
             tooltip: 'Log out',
             onPressed: () async {
-              await FirebaseAuth.instance.signOut();
-              if (context.mounted) {
-                context.read<UiProvider>().setTabIndex(4);
-                Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(builder: (context) => const HomeShell()),
-                  (route) => false,
-                );
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  backgroundColor: AppTheme.darkCardBg,
+                  title: const Text('Log Out'),
+                  content: const Text('Are you sure you want to log out of the admin panel?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text('Cancel', style: TextStyle(color: Colors.white70)),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      child: const Text('Log out', style: TextStyle(color: Colors.redAccent)),
+                    ),
+                  ],
+                ),
+              );
+
+              if (confirm == true && context.mounted) {
+                await FirebaseAuth.instance.signOut();
+                if (context.mounted) {
+                  context.read<UiProvider>().setTabIndex(4);
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (context) => const HomeShell()),
+                    (route) => false,
+                  );
+                }
               }
             },
           ),
@@ -64,8 +119,7 @@ class AdminDashboardScreen extends StatelessWidget {
           _buildAdminTile(context, 'Departments', Icons.business_rounded),
           _buildAdminTile(context, 'Designations', Icons.badge_outlined),
           _buildAdminTile(context, 'Locations', Icons.map_outlined),
-          _buildAdminTile(context, 'Timetables', Icons.calendar_today_rounded),
-          _buildAdminTile(context, 'Timetable Exceptions', Icons.event_busy_outlined),
+          _buildAdminTile(context, 'Timetables & Exceptions', Icons.calendar_month_rounded),
         ],
       ),
     );
@@ -95,6 +149,8 @@ class AdminDashboardScreen extends StatelessWidget {
             destination = const AdminDepartmentsScreen();
           } else if (title == 'Designations') {
             destination = const AdminDesignationsScreen();
+          } else if (title == 'Timetables & Exceptions') {
+            destination = const AdminTimetableFacultyListScreen();
           } else {
             destination = AdminPlaceholderScreen(title: title);
           }

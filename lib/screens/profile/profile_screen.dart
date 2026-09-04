@@ -84,21 +84,22 @@ class ProfileScreen extends StatelessWidget {
               ),
             ),
             const Spacer(),
-            GestureDetector(
-              onTap: () {
+            TextButton.icon(
+              onPressed: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const AdminLoginScreen()),
                 );
               },
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16.0),
-                child: Text(
-                  'Admin',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Colors.white24,
-                  ),
+              icon: const Icon(Icons.admin_panel_settings_rounded, color: Colors.white24, size: 16),
+              label: Text(
+                'Admin Access',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Colors.white24,
                 ),
+              ),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               ),
             ),
           ],

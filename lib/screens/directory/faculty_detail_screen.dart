@@ -135,6 +135,11 @@ class _FacultyDetailScreenState extends State<FacultyDetailScreen> {
           textColor = AppTheme.statusWarning;
         }
 
+        String displayStatus = statusText;
+        if (statusText == 'Unknown' && DateTime.now().weekday == DateTime.sunday) {
+          displayStatus = 'No classes today';
+        }
+
         return Column(
           children: [
             Container(
@@ -144,7 +149,7 @@ class _FacultyDetailScreenState extends State<FacultyDetailScreen> {
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Text(
-                statusText,
+                displayStatus,
                 style: TextStyle(
                   color: textColor,
                   fontWeight: FontWeight.bold,

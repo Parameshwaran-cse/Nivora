@@ -143,18 +143,25 @@ class FirestoreService {
     required String field,
     required String oldValue,
     required String newValue,
+    WriteBatch? batch,
   }) async {
     final user = _auth.currentUser;
     if (user == null) return; // Should not happen for admin writes
 
-    await _auditLogRef.add({
+    final data = {
       'recordId': recordId,
       'field': field,
       'oldValue': oldValue,
       'newValue': newValue,
       'changedBy': user.email ?? user.uid,
       'timestamp': FieldValue.serverTimestamp(),
-    });
+    };
+
+    if (batch != null) {
+      batch.set(_auditLogRef.doc(), data);
+    } else {
+      await _auditLogRef.add(data);
+    }
   }
 
   /// Create a new faculty record (admin only)
@@ -341,5 +348,176 @@ class FirestoreService {
       oldValue: 'title: ${desig.title}, rank: ${desig.rank}',
       newValue: '',
     );
+  }
+
+  // ==========================================
+  // TIMETABLE CRUD (Admin Phase E)
+  // ==========================================
+
+  Stream<List<Timetable>> getTimetablesStream(String facultyId) {
+    return _timetablesRef
+        .where('facultyId', isEqualTo: facultyId)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => Timetable.fromMap(doc.id, doc.data() as Map<String, dynamic>))
+            .toList());
+  }
+
+  Future<String> createTimetable(Timetable timetable) async {
+    final batch = _firestore.batch();
+    final newDocRef = _timetablesRef.doc();
+    
+    // Auto-deactivate logic if this one is active
+    if (timetable.active) {
+      final activeQuery = await _timetablesRef
+          .where('facultyId', isEqualTo: timetable.facultyId)
+          .where('active', isEqualTo: true)
+          .get();
+      
+      for (var doc in activeQuery.docs) {
+        batch.update(doc.reference, {'active': false});
+        await writeAuditLog(
+          recordId: doc.id,
+          field: 'active',
+          oldValue: 'true',
+          newValue: 'false',
+          batch: batch,
+        );
+      }
+    }
+
+    batch.set(newDocRef, timetable.toMap());
+    
+    await writeAuditLog(
+      recordId: newDocRef.id,
+      field: 'DOCUMENT_CREATED',
+      oldValue: '',
+      newValue: 'term: ${timetable.term}, active: ${timetable.active}, slots: ${timetable.slots.length}',
+      batch: batch,
+    );
+    
+    await batch.commit();
+    return newDocRef.id;
+  }
+
+  Future<void> updateTimetable(String id, Timetable newTb, Timetable oldTb) async {
+    final batch = _firestore.batch();
+    
+    // Auto-deactivate logic if this one is active
+    if (newTb.active && !oldTb.active) {
+      final activeQuery = await _timetablesRef
+          .where('facultyId', isEqualTo: newTb.facultyId)
+          .where('active', isEqualTo: true)
+          .get();
+      
+      for (var doc in activeQuery.docs) {
+        if (doc.id != id) {
+          batch.update(doc.reference, {'active': false});
+          await writeAuditLog(
+            recordId: doc.id,
+            field: 'active',
+            oldValue: 'true',
+            newValue: 'false',
+            batch: batch,
+          );
+        }
+      }
+    }
+
+    batch.update(_timetablesRef.doc(id), newTb.toMap());
+
+    if (oldTb.term != newTb.term) {
+      await writeAuditLog(recordId: id, field: 'term', oldValue: oldTb.term, newValue: newTb.term, batch: batch);
+    }
+    if (oldTb.active != newTb.active) {
+      await writeAuditLog(recordId: id, field: 'active', oldValue: oldTb.active.toString(), newValue: newTb.active.toString(), batch: batch);
+    }
+    if (oldTb.slots.length != newTb.slots.length) {
+      await writeAuditLog(recordId: id, field: 'slots', oldValue: '${oldTb.slots.length} slots', newValue: '${newTb.slots.length} slots', batch: batch);
+    }
+
+    await batch.commit();
+  }
+
+  Future<void> deleteTimetable(String id, Timetable tb) async {
+    final batch = _firestore.batch();
+    batch.delete(_timetablesRef.doc(id));
+    
+    await writeAuditLog(
+      recordId: id,
+      field: 'DOCUMENT_DELETED',
+      oldValue: 'term: ${tb.term}, active: ${tb.active}',
+      newValue: '',
+      batch: batch,
+    );
+    
+    await batch.commit();
+  }
+
+  // ==========================================
+  // TIMETABLE EXCEPTIONS CRUD (Admin Phase E)
+  // ==========================================
+
+  Stream<List<TimetableException>> getTimetableExceptionsStream(String facultyId) {
+    return _exceptionsRef
+        .where('facultyId', isEqualTo: facultyId)
+        .snapshots()
+        .map((snapshot) {
+          final list = snapshot.docs
+              .map((doc) => TimetableException.fromMap(doc.id, doc.data() as Map<String, dynamic>))
+              .toList();
+          list.sort((a, b) => b.date.compareTo(a.date)); // Sort locally to avoid composite index
+          return list;
+        });
+  }
+
+  Future<String> createTimetableException(TimetableException ex) async {
+    final batch = _firestore.batch();
+    final newDocRef = _exceptionsRef.doc();
+    
+    batch.set(newDocRef, ex.toMap());
+    
+    await writeAuditLog(
+      recordId: newDocRef.id,
+      field: 'DOCUMENT_CREATED',
+      oldValue: '',
+      newValue: 'date: ${ex.date.toIso8601String()}, type: ${ex.type}',
+      batch: batch,
+    );
+    
+    await batch.commit();
+    return newDocRef.id;
+  }
+
+  Future<void> updateTimetableException(String id, TimetableException newEx, TimetableException oldEx) async {
+    final batch = _firestore.batch();
+    batch.update(_exceptionsRef.doc(id), newEx.toMap());
+
+    if (oldEx.date != newEx.date) {
+      await writeAuditLog(recordId: id, field: 'date', oldValue: oldEx.date.toIso8601String(), newValue: newEx.date.toIso8601String(), batch: batch);
+    }
+    if (oldEx.type != newEx.type) {
+      await writeAuditLog(recordId: id, field: 'type', oldValue: oldEx.type, newValue: newEx.type, batch: batch);
+    }
+    if (oldEx.note != newEx.note) {
+      await writeAuditLog(recordId: id, field: 'note', oldValue: oldEx.note ?? '', newValue: newEx.note ?? '', batch: batch);
+    }
+
+    await batch.commit();
+  }
+
+  Future<void> deleteTimetableException(String id, TimetableException ex) async {
+    final batch = _firestore.batch();
+    batch.delete(_exceptionsRef.doc(id));
+    
+    await writeAuditLog(
+      recordId: id,
+      field: 'DOCUMENT_DELETED',
+      oldValue: 'date: ${ex.date.toIso8601String()}, type: ${ex.type}',
+      newValue: '',
+      batch: batch,
+    );
+    
+    await batch.commit();
   }
 }
