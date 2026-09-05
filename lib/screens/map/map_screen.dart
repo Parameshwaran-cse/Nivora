@@ -14,8 +14,6 @@ class MapScreen extends StatefulWidget {
 }
 
 class _MapScreenState extends State<MapScreen> {
-  Location? _selectedLocation;
-
   @override
   void initState() {
     super.initState();
@@ -24,146 +22,197 @@ class _MapScreenState extends State<MapScreen> {
         final provider = context.read<FacultyProvider>();
         final loc = provider.getLocation(widget.highlightLocationId!);
         if (loc != null) {
-          setState(() {
-            _selectedLocation = loc;
-          });
+          _showLocationDetails(loc);
         }
       });
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final provider = context.watch<FacultyProvider>();
-    final locations = provider.locations;
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Campus Map'),
+  void _showLocationDetails(Location loc) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppTheme.darkCardBg,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: InteractiveViewer(
-              minScale: 0.5,
-              maxScale: 4.0,
-              child: Center(
-                child: AspectRatio(
-                  aspectRatio: 1.0, // Assuming a square map for now
-                  child: Stack(
-                    children: [
-                      // Placeholder map image
-                      Container(
-                        decoration: BoxDecoration(
-                          color: AppTheme.darkCardBg,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: Colors.white12),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppTheme.darkAccent.withAlpha(25),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.place_rounded, color: AppTheme.darkAccent),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          loc.name,
+                          style: Theme.of(context).textTheme.titleLarge,
                         ),
-                        child: const Center(
-                          child: Icon(
-                            Icons.map_outlined,
-                            size: 100,
-                            color: Colors.white24,
+                        const SizedBox(height: 4),
+                        Text(
+                          loc.type.toUpperCase(),
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: AppTheme.darkAccent,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                      ),
-                      // Pins
-                      ...locations.map((loc) {
-                        final isHighlighted = loc.id == widget.highlightLocationId || 
-                                              loc.id == _selectedLocation?.id;
-                        return Align(
-                          alignment: Alignment(-1 + 2 * loc.mapX, -1 + 2 * loc.mapY),
-                          child: GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                _selectedLocation = loc;
-                              });
-                            },
-                            child: FractionalTranslation(
-                              translation: const Offset(-0.5, -1.0), // center bottom of pin at mapX/mapY
-                              child: Icon(
-                                Icons.location_on_rounded,
-                                size: isHighlighted ? 40 : 32,
-                                color: isHighlighted ? AppTheme.darkAccent : Colors.white54,
-                              ),
-                            ),
-                          ),
-                        );
-                      }),
-                    ],
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded, color: Colors.white54),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  const Icon(Icons.business_rounded, color: Colors.white54, size: 20),
+                  const SizedBox(width: 8),
+                  Text(loc.building, style: const TextStyle(fontSize: 16)),
+                  const SizedBox(width: 24),
+                  const Icon(Icons.layers_rounded, color: Colors.white54, size: 20),
+                  const SizedBox(width: 8),
+                  Text(loc.floor, style: const TextStyle(fontSize: 16)),
+                ],
+              ),
+              if (loc.description != null && loc.description!.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                const Divider(color: Colors.white12),
+                const SizedBox(height: 16),
+                Text(
+                  loc.description!,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Colors.white70,
                   ),
                 ),
-              ),
-            ),
+              ],
+              const SizedBox(height: 16),
+            ],
           ),
-          if (_selectedLocation != null)
-            _buildLocationInfoCard(_selectedLocation!),
-        ],
-      ),
+        );
+      },
     );
   }
 
-  Widget _buildLocationInfoCard(Location loc) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: const BoxDecoration(
-        color: AppTheme.darkCardBg,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+  @override
+  Widget build(BuildContext context) {
+    final provider = context.watch<FacultyProvider>();
+    final locations = List<Location>.from(provider.locations);
+
+    // Grouping by Building -> Floor -> List<Location>
+    // To present a sectioned list, we first sort all locations correctly
+    locations.sort((a, b) {
+      int cmp = a.building.compareTo(b.building);
+      if (cmp != 0) return cmp;
+      cmp = a.floor.compareTo(b.floor);
+      if (cmp != 0) return cmp;
+      return a.name.compareTo(b.name);
+    });
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Locations'),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: AppTheme.darkAccent.withAlpha(25),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.place_rounded, color: AppTheme.darkAccent),
+      body: locations.isEmpty
+          ? const Center(
+              child: Text(
+                'No locations available',
+                style: TextStyle(color: Colors.white54, fontSize: 16),
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
+            )
+          : ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: locations.length,
+              itemBuilder: (context, index) {
+                final loc = locations[index];
+                final bool showBuildingHeader = index == 0 || locations[index - 1].building != loc.building;
+                final bool showFloorHeader = showBuildingHeader || locations[index - 1].floor != loc.floor;
+
+                return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      loc.name,
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      loc.type.toUpperCase(),
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppTheme.darkAccent,
-                        fontWeight: FontWeight.bold,
+                    if (showBuildingHeader)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 24, bottom: 8, left: 8),
+                        child: Text(
+                          loc.building,
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.darkAccent,
+                          ),
+                        ),
+                      ),
+                    if (showFloorHeader)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8, bottom: 12, left: 8),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.layers_rounded, color: Colors.white54, size: 16),
+                            const SizedBox(width: 8),
+                            Text(
+                              loc.floor,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white70,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    Card(
+                      color: AppTheme.darkCardBg,
+                      margin: const EdgeInsets.only(bottom: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        leading: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withAlpha(13),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.place_rounded, color: AppTheme.darkAccent, size: 20),
+                        ),
+                        title: Text(
+                          loc.name,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Padding(
+                          padding: const EdgeInsets.only(top: 4.0),
+                          child: Text(
+                            loc.type.toUpperCase(),
+                            style: const TextStyle(
+                              color: Colors.white54,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        trailing: const Icon(Icons.chevron_right_rounded, color: Colors.white24),
+                        onTap: () => _showLocationDetails(loc),
                       ),
                     ),
                   ],
-                ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.close_rounded, color: Colors.white54),
-                onPressed: () {
-                  setState(() {
-                    _selectedLocation = null;
-                  });
-                },
-              ),
-            ],
-          ),
-          if (loc.description != null && loc.description!.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            Text(
-              loc.description!,
-              style: Theme.of(context).textTheme.bodyMedium,
+                );
+              },
             ),
-          ],
-        ],
-      ),
     );
   }
 }

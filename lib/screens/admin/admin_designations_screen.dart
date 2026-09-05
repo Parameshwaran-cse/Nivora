@@ -68,6 +68,7 @@ class _AdminDesignationsScreenState extends State<AdminDesignationsScreen> {
     final rankController = TextEditingController(text: existingDesig?.rank.toString());
     final formKey = GlobalKey<FormState>();
     bool isSaving = false;
+    final newDocId = isEditing ? existingDesig.id : _firestore.generateId();
 
     showModalBottomSheet(
       context: context,
@@ -122,7 +123,7 @@ class _AdminDesignationsScreenState extends State<AdminDesignationsScreen> {
                             setModalState(() => isSaving = true);
 
                             final newDesig = Designation(
-                              id: existingDesig?.id ?? '',
+                              id: newDocId,
                               title: titleController.text.trim(),
                               rank: int.parse(rankController.text.trim()),
                             );

@@ -21,6 +21,9 @@ class FirestoreService {
   CollectionReference get _exceptionsRef => _firestore.collection('timetableExceptions');
   CollectionReference get _auditLogRef => _firestore.collection('auditLog');
 
+  /// Helper to generate a unique ID before submitting forms
+  String generateId() => _firestore.collection('_').doc().id;
+
   /// Helper to get data with a short timeout, falling back to cache if offline
   Future<QuerySnapshot> _getWithTimeout(Query query) async {
     // Check if device is completely offline upfront
@@ -34,6 +37,14 @@ class FirestoreService {
     } catch (_) {
       return await query.get(const GetOptions(source: Source.cache));
     }
+  }
+
+  /// Helper to wrap write operations with a timeout
+  Future<T> _writeWithTimeout<T>(Future<T> future) {
+    return future.timeout(
+      const Duration(seconds: 7),
+      onTimeout: () => throw Exception('Network timeout. Please check your internet connection.'),
+    );
   }
 
   /// Stream of all faculty with consent.given == true (for public directory)
@@ -97,6 +108,10 @@ class FirestoreService {
         .toList();
   }
 
+  // ==========================================
+  // LOCATIONS CRUD (Admin Phase D)
+  // ==========================================
+
   /// Stream of all locations
   Stream<List<Location>> getLocationsStream() {
     return _locationsRef.snapshots().map((snapshot) => snapshot.docs
@@ -110,6 +125,61 @@ class FirestoreService {
     return snapshot.docs
         .map((doc) => Location.fromMap(doc.id, doc.data() as Map<String, dynamic>))
         .toList();
+  }
+
+  /// Create a location (admin only)
+  Future<String> createLocation(Location location) async {
+    final docRef = location.id.isNotEmpty ? _locationsRef.doc(location.id) : _locationsRef.doc();
+    await _writeWithTimeout(docRef.set(location.toMap()));
+    
+    await writeAuditLog(
+      logId: 'create_loc_${docRef.id}',
+      recordId: docRef.id,
+      field: 'DOCUMENT_CREATED',
+      oldValue: '',
+      newValue: 'name: ${location.name}, building: ${location.building}, floor: ${location.floor}',
+    );
+    return docRef.id;
+  }
+
+  /// Update a location (admin only)
+  Future<void> updateLocation(String id, Location newLoc, Location oldLoc) async {
+    await _writeWithTimeout(_locationsRef.doc(id).update(newLoc.toMap()));
+
+    if (oldLoc.name != newLoc.name) {
+      await writeAuditLog(recordId: id, field: 'name', oldValue: oldLoc.name, newValue: newLoc.name);
+    }
+    if (oldLoc.type != newLoc.type) {
+      await writeAuditLog(recordId: id, field: 'type', oldValue: oldLoc.type, newValue: newLoc.type);
+    }
+    if (oldLoc.building != newLoc.building) {
+      await writeAuditLog(recordId: id, field: 'building', oldValue: oldLoc.building, newValue: newLoc.building);
+    }
+    if (oldLoc.floor != newLoc.floor) {
+      await writeAuditLog(recordId: id, field: 'floor', oldValue: oldLoc.floor, newValue: newLoc.floor);
+    }
+    if (oldLoc.description != newLoc.description) {
+      await writeAuditLog(recordId: id, field: 'description', oldValue: oldLoc.description ?? '', newValue: newLoc.description ?? '');
+    }
+  }
+
+  /// Delete a location (admin only)
+  Future<void> deleteLocation(String id, Location loc) async {
+    final countQuery = await _facultyRef.where('locationId', isEqualTo: id).count().get();
+    final count = countQuery.count ?? 0;
+    
+    if (count > 0) {
+      throw Exception('Cannot delete — $count faculty member(s) reference this location. Reassign them first.');
+    }
+
+    await _writeWithTimeout(_locationsRef.doc(id).delete());
+
+    await writeAuditLog(
+      recordId: id,
+      field: 'DOCUMENT_DELETED',
+      oldValue: 'name: ${loc.name}, building: ${loc.building}, floor: ${loc.floor}',
+      newValue: '',
+    );
   }
 
   /// Get active timetable for a faculty member
@@ -139,6 +209,7 @@ class FirestoreService {
 
   /// Write audit log entry (admin only)
   Future<void> writeAuditLog({
+    String? logId,
     required String recordId,
     required String field,
     required String oldValue,
@@ -157,17 +228,21 @@ class FirestoreService {
       'timestamp': FieldValue.serverTimestamp(),
     };
 
+    final docRef = logId != null ? _auditLogRef.doc(logId) : _auditLogRef.doc();
+
     if (batch != null) {
-      batch.set(_auditLogRef.doc(), data);
+      batch.set(docRef, data);
     } else {
-      await _auditLogRef.add(data);
+      await _writeWithTimeout(docRef.set(data));
     }
   }
 
   /// Create a new faculty record (admin only)
   Future<String> createFaculty(Faculty faculty) async {
-    final docRef = await _facultyRef.add(faculty.toMap());
+    final docRef = faculty.id.isNotEmpty ? _facultyRef.doc(faculty.id) : _facultyRef.doc();
+    await _writeWithTimeout(docRef.set(faculty.toMap()));
     await writeAuditLog(
+      logId: 'create_fac_${docRef.id}',
       recordId: docRef.id,
       field: 'DOCUMENT_CREATED',
       oldValue: '',
@@ -178,10 +253,10 @@ class FirestoreService {
 
   /// Update a faculty record (admin only)
   Future<void> updateFaculty(String id, Faculty newFac, Faculty oldFac) async {
-    await _facultyRef.doc(id).update({
+    await _writeWithTimeout(_facultyRef.doc(id).update({
       ...newFac.toMap(),
       'lastUpdated': FieldValue.serverTimestamp(),
-    });
+    }));
 
     if (oldFac.name != newFac.name) {
       await writeAuditLog(recordId: id, field: 'name', oldValue: oldFac.name, newValue: newFac.name);
@@ -199,11 +274,11 @@ class FirestoreService {
 
   /// Delete a faculty record (admin only) - soft delete via consent and archiving
   Future<void> softDeleteFaculty(String id) async {
-    await _facultyRef.doc(id).update({
+    await _writeWithTimeout(_facultyRef.doc(id).update({
       'isArchived': true,
       'consent.given': false,
       'lastUpdated': FieldValue.serverTimestamp(),
-    });
+    }));
     await writeAuditLog(
       recordId: id,
       field: 'FACULTY_ARCHIVED',
@@ -214,10 +289,10 @@ class FirestoreService {
 
   /// Restore an archived faculty record (admin only)
   Future<void> restoreFaculty(String id) async {
-    await _facultyRef.doc(id).update({
+    await _writeWithTimeout(_facultyRef.doc(id).update({
       'isArchived': false,
       'lastUpdated': FieldValue.serverTimestamp(),
-    });
+    }));
     await writeAuditLog(
       recordId: id,
       field: 'FACULTY_RESTORED',
@@ -238,14 +313,17 @@ class FirestoreService {
   Future<String> createDepartment(Department department) async {
     final existing = await _departmentsRef.get();
     for (var doc in existing.docs) {
+      if (department.id.isNotEmpty && doc.id == department.id) continue;
       if ((doc.data() as Map<String, dynamic>)['shortCode'].toString().toLowerCase() == department.shortCode.toLowerCase()) {
         throw Exception('A department with this short code already exists.');
       }
     }
     
-    final docRef = await _departmentsRef.add(department.toMap());
+    final docRef = department.id.isNotEmpty ? _departmentsRef.doc(department.id) : _departmentsRef.doc();
+    await _writeWithTimeout(docRef.set(department.toMap()));
     
     await writeAuditLog(
+      logId: 'create_dept_${docRef.id}',
       recordId: docRef.id,
       field: 'DOCUMENT_CREATED',
       oldValue: '',
@@ -263,7 +341,7 @@ class FirestoreService {
       }
     }
 
-    await _departmentsRef.doc(id).update(newDept.toMap());
+    await _writeWithTimeout(_departmentsRef.doc(id).update(newDept.toMap()));
 
     if (oldDept.name != newDept.name) {
       await writeAuditLog(recordId: id, field: 'name', oldValue: oldDept.name, newValue: newDept.name);
@@ -282,7 +360,7 @@ class FirestoreService {
       throw Exception('Cannot delete — $count faculty member(s) are assigned to this department. Reassign them first.');
     }
 
-    await _departmentsRef.doc(id).delete();
+    await _writeWithTimeout(_departmentsRef.doc(id).delete());
 
     await writeAuditLog(
       recordId: id,
@@ -296,14 +374,17 @@ class FirestoreService {
   Future<String> createDesignation(Designation designation) async {
     final existing = await _designationsRef.get();
     for (var doc in existing.docs) {
+      if (designation.id.isNotEmpty && doc.id == designation.id) continue;
       if ((doc.data() as Map<String, dynamic>)['title'].toString().toLowerCase() == designation.title.toLowerCase()) {
         throw Exception('A designation with this title already exists.');
       }
     }
     
-    final docRef = await _designationsRef.add(designation.toMap());
+    final docRef = designation.id.isNotEmpty ? _designationsRef.doc(designation.id) : _designationsRef.doc();
+    await _writeWithTimeout(docRef.set(designation.toMap()));
     
     await writeAuditLog(
+      logId: 'create_desig_${docRef.id}',
       recordId: docRef.id,
       field: 'DOCUMENT_CREATED',
       oldValue: '',
@@ -321,7 +402,7 @@ class FirestoreService {
       }
     }
 
-    await _designationsRef.doc(id).update(newDesig.toMap());
+    await _writeWithTimeout(_designationsRef.doc(id).update(newDesig.toMap()));
 
     if (oldDesig.title != newDesig.title) {
       await writeAuditLog(recordId: id, field: 'title', oldValue: oldDesig.title, newValue: newDesig.title);
@@ -340,7 +421,7 @@ class FirestoreService {
       throw Exception('Cannot delete — $count faculty member(s) are assigned to this designation. Reassign them first.');
     }
 
-    await _designationsRef.doc(id).delete();
+    await _writeWithTimeout(_designationsRef.doc(id).delete());
 
     await writeAuditLog(
       recordId: id,
@@ -365,7 +446,7 @@ class FirestoreService {
 
   Future<String> createTimetable(Timetable timetable) async {
     final batch = _firestore.batch();
-    final newDocRef = _timetablesRef.doc();
+    final newDocRef = timetable.id.isNotEmpty ? _timetablesRef.doc(timetable.id) : _timetablesRef.doc();
     
     // Auto-deactivate logic if this one is active
     if (timetable.active) {
@@ -389,6 +470,7 @@ class FirestoreService {
     batch.set(newDocRef, timetable.toMap());
     
     await writeAuditLog(
+      logId: 'create_tb_${newDocRef.id}',
       recordId: newDocRef.id,
       field: 'DOCUMENT_CREATED',
       oldValue: '',
@@ -396,7 +478,7 @@ class FirestoreService {
       batch: batch,
     );
     
-    await batch.commit();
+    await _writeWithTimeout(batch.commit());
     return newDocRef.id;
   }
 
@@ -436,7 +518,7 @@ class FirestoreService {
       await writeAuditLog(recordId: id, field: 'slots', oldValue: '${oldTb.slots.length} slots', newValue: '${newTb.slots.length} slots', batch: batch);
     }
 
-    await batch.commit();
+    await _writeWithTimeout(batch.commit());
   }
 
   Future<void> deleteTimetable(String id, Timetable tb) async {
@@ -451,7 +533,7 @@ class FirestoreService {
       batch: batch,
     );
     
-    await batch.commit();
+    await _writeWithTimeout(batch.commit());
   }
 
   // ==========================================
@@ -473,11 +555,12 @@ class FirestoreService {
 
   Future<String> createTimetableException(TimetableException ex) async {
     final batch = _firestore.batch();
-    final newDocRef = _exceptionsRef.doc();
+    final newDocRef = ex.id.isNotEmpty ? _exceptionsRef.doc(ex.id) : _exceptionsRef.doc();
     
     batch.set(newDocRef, ex.toMap());
     
     await writeAuditLog(
+      logId: 'create_ex_${newDocRef.id}',
       recordId: newDocRef.id,
       field: 'DOCUMENT_CREATED',
       oldValue: '',
@@ -485,7 +568,7 @@ class FirestoreService {
       batch: batch,
     );
     
-    await batch.commit();
+    await _writeWithTimeout(batch.commit());
     return newDocRef.id;
   }
 
@@ -503,7 +586,7 @@ class FirestoreService {
       await writeAuditLog(recordId: id, field: 'note', oldValue: oldEx.note ?? '', newValue: newEx.note ?? '', batch: batch);
     }
 
-    await batch.commit();
+    await _writeWithTimeout(batch.commit());
   }
 
   Future<void> deleteTimetableException(String id, TimetableException ex) async {
@@ -518,6 +601,6 @@ class FirestoreService {
       batch: batch,
     );
     
-    await batch.commit();
+    await _writeWithTimeout(batch.commit());
   }
 }

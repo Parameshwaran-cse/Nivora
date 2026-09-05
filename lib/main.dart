@@ -32,7 +32,8 @@ class NivoraApp extends StatelessWidget {
         ),
       ],
       child: MaterialApp(
-        title: 'Nivora',
+        title: 'YATA',
+        debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
         darkTheme: AppTheme.darkTheme,
         themeMode: ThemeMode.system,

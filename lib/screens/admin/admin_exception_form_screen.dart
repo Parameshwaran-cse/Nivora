@@ -21,6 +21,7 @@ class _AdminExceptionFormScreenState extends State<AdminExceptionFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _firestore = FirestoreService();
   bool _isProcessing = false;
+  String? _newDocId;
 
   DateTime? _selectedDate;
   String _type = 'leave';
@@ -86,8 +87,10 @@ class _AdminExceptionFormScreenState extends State<AdminExceptionFormScreen> {
     setState(() => _isProcessing = true);
 
     try {
+      _newDocId ??= _firestore.generateId();
+
       final newEx = TimetableException(
-        id: widget.existingException?.id ?? '',
+        id: widget.existingException?.id ?? _newDocId!,
         facultyId: widget.faculty.id,
         date: _selectedDate!,
         type: _type,

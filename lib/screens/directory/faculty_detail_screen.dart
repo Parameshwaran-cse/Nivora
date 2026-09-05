@@ -5,7 +5,6 @@ import '../../models/faculty.dart';
 import '../../providers/faculty_provider.dart';
 import '../../utils/theme.dart';
 import '../../providers/timetable_provider.dart';
-import '../map/map_screen.dart';
 import '../timetable/faculty_timetable_screen.dart';
 
 class FacultyDetailScreen extends StatefulWidget {
@@ -198,17 +197,94 @@ class _FacultyDetailScreenState extends State<FacultyDetailScreen> {
               showChevron: true,
               onTap: () {
                 if (widget.faculty.locationId != null && widget.faculty.locationId!.isNotEmpty) {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => MapScreen(
-                        highlightLocationId: widget.faculty.locationId,
+                  final loc = context.read<FacultyProvider>().getLocation(widget.faculty.locationId!);
+                  if (loc != null) {
+                    showModalBottomSheet(
+                      context: context,
+                      backgroundColor: AppTheme.darkCardBg,
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
                       ),
-                    ),
-                  );
+                      builder: (context) {
+                        return Padding(
+                          padding: const EdgeInsets.all(24.0),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: AppTheme.darkAccent.withAlpha(25),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(Icons.place_rounded, color: AppTheme.darkAccent),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          loc.name,
+                                          style: Theme.of(context).textTheme.titleLarge,
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          loc.type.toUpperCase(),
+                                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                            color: AppTheme.darkAccent,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.close_rounded, color: Colors.white54),
+                                    onPressed: () => Navigator.pop(context),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 24),
+                              Row(
+                                children: [
+                                  const Icon(Icons.business_rounded, color: Colors.white54, size: 20),
+                                  const SizedBox(width: 8),
+                                  Text(loc.building, style: const TextStyle(fontSize: 16)),
+                                  const SizedBox(width: 24),
+                                  const Icon(Icons.layers_rounded, color: Colors.white54, size: 20),
+                                  const SizedBox(width: 8),
+                                  Text(loc.floor, style: const TextStyle(fontSize: 16)),
+                                ],
+                              ),
+                              if (loc.description != null && loc.description!.isNotEmpty) ...[
+                                const SizedBox(height: 16),
+                                const Divider(color: Colors.white12),
+                                const SizedBox(height: 16),
+                                Text(
+                                  loc.description!,
+                                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: Colors.white70,
+                                  ),
+                                ),
+                              ],
+                              const SizedBox(height: 16),
+                            ],
+                          ),
+                        );
+                      },
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Location data not found.')),
+                    );
+                  }
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('No map location mapped for this cabin.')),
+                    const SnackBar(content: Text('No location assigned for this cabin.')),
                   );
                 }
               },

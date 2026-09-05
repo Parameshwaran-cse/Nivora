@@ -9,6 +9,7 @@ import 'admin_departments_screen.dart';
 import 'admin_designations_screen.dart';
 import 'admin_faculty_screen.dart';
 import 'admin_timetable_faculty_list_screen.dart';
+import 'admin_locations_screen.dart';
 
 class AdminDashboardScreen extends StatelessWidget {
   const AdminDashboardScreen({super.key});
@@ -149,6 +150,8 @@ class AdminDashboardScreen extends StatelessWidget {
             destination = const AdminDepartmentsScreen();
           } else if (title == 'Designations') {
             destination = const AdminDesignationsScreen();
+          } else if (title == 'Locations') {
+            destination = const AdminLocationsScreen();
           } else if (title == 'Timetables & Exceptions') {
             destination = const AdminTimetableFacultyListScreen();
           } else {

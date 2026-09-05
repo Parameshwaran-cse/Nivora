@@ -22,6 +22,7 @@ class _AdminTimetableFormScreenState extends State<AdminTimetableFormScreen> wit
   final _firestore = FirestoreService();
   bool _isProcessing = false;
   late TabController _tabController;
+  String? _newDocId;
 
   late TextEditingController _termController;
   bool _isActive = false;
@@ -249,8 +250,10 @@ class _AdminTimetableFormScreenState extends State<AdminTimetableFormScreen> wit
     setState(() => _isProcessing = true);
 
     try {
+      _newDocId ??= _firestore.generateId();
+
       final newTb = Timetable(
-        id: widget.existingTimetable?.id ?? '',
+        id: widget.existingTimetable?.id ?? _newDocId!,
         facultyId: widget.faculty.id,
         term: term,
         active: _isActive,

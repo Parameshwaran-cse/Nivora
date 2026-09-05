@@ -24,6 +24,7 @@ class _AdminFacultyFormScreenState extends State<AdminFacultyFormScreen> {
   final _firestore = FirestoreService();
   bool _isSaving = false;
   bool _isLoadingLookups = true;
+  String? _newDocId;
 
   List<Department> _departments = [];
   List<Designation> _designations = [];
@@ -155,8 +156,8 @@ class _AdminFacultyFormScreenState extends State<AdminFacultyFormScreen> {
       // Since upload requires facultyId, we will generate doc ref first for creates inside service, 
       // but firestore_service takes the Faculty object.
       // So if new, we can generate a random ID for the photo path, or generate ID manually.
-      // Let's generate a temporary unique ID for photo if new.
-      final facultyId = widget.existingFaculty?.id ?? DateTime.now().millisecondsSinceEpoch.toString();
+      _newDocId ??= _firestore.generateId();
+      final facultyId = widget.existingFaculty?.id ?? _newDocId!;
 
       if (_imageFile != null) {
         photoUrl = await _firestore.uploadFacultyPhoto(_imageFile!, facultyId);
@@ -180,7 +181,7 @@ class _AdminFacultyFormScreenState extends State<AdminFacultyFormScreen> {
       );
 
       final newFac = Faculty(
-        id: widget.existingFaculty?.id ?? '', // Will be assigned by Firestore if new
+        id: facultyId,
         name: _nameController.text.trim(),
         departmentId: _selectedDeptId!,
         designationId: _selectedDesigId!,
