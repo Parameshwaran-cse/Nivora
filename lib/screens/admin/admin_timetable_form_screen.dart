@@ -121,7 +121,23 @@ class _AdminTimetableFormScreenState extends State<AdminTimetableFormScreen> wit
                             onTap: () async {
                               final parts = startTimeCtrl.text.split(':');
                               final current = TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
-                              final picked = await showTimePicker(context: context, initialTime: current);
+                              final picked = await showTimePicker(
+                                context: context,
+                                initialTime: current,
+                                builder: (BuildContext context, Widget? child) {
+                                  return Theme(
+                                    data: ThemeData.dark().copyWith(
+                                      colorScheme: const ColorScheme.dark(
+                                        primary: AppTheme.darkAccent,
+                                        onPrimary: Colors.black,
+                                        surface: AppTheme.darkCardBg,
+                                        onSurface: Colors.white,
+                                      ),
+                                    ),
+                                    child: child!,
+                                  );
+                                },
+                              );
                               if (picked != null) {
                                 setDialogState(() {
                                   startTimeCtrl.text = '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
@@ -140,7 +156,23 @@ class _AdminTimetableFormScreenState extends State<AdminTimetableFormScreen> wit
                             onTap: () async {
                               final parts = endTimeCtrl.text.split(':');
                               final current = TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
-                              final picked = await showTimePicker(context: context, initialTime: current);
+                              final picked = await showTimePicker(
+                                context: context,
+                                initialTime: current,
+                                builder: (BuildContext context, Widget? child) {
+                                  return Theme(
+                                    data: ThemeData.dark().copyWith(
+                                      colorScheme: const ColorScheme.dark(
+                                        primary: AppTheme.darkAccent,
+                                        onPrimary: Colors.black,
+                                        surface: AppTheme.darkCardBg,
+                                        onSurface: Colors.white,
+                                      ),
+                                    ),
+                                    child: child!,
+                                  );
+                                },
+                              );
                               if (picked != null) {
                                 setDialogState(() {
                                   endTimeCtrl.text = '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';

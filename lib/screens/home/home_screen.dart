@@ -25,11 +25,37 @@ class HomeScreen extends StatelessWidget {
                   }
                   
                   if (provider.error != null) {
-                    return Center(child: Text(provider.error!));
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.error_outline_rounded, size: 64, color: Colors.red.shade400),
+                          const SizedBox(height: 16),
+                          Text(provider.error!, style: const TextStyle(color: Colors.red)),
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            onPressed: () => provider.loadAll(),
+                            child: const Text('Retry'),
+                          ),
+                        ],
+                      ),
+                    );
                   }
 
                   if (provider.departments.isEmpty) {
-                    return const Center(child: Text('No departments found.'));
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.business_rounded, size: 64, color: Colors.grey.shade700),
+                          const SizedBox(height: 16),
+                          const Text(
+                            'No departments found.',
+                            style: TextStyle(color: Colors.grey, fontSize: 16),
+                          ),
+                        ],
+                      ),
+                    );
                   }
 
                   return RefreshIndicator(
@@ -106,7 +132,12 @@ class HomeScreen extends StatelessWidget {
             Expanded(
               child: Text(
                 department.name,
-                style: Theme.of(context).textTheme.titleLarge,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 18,
+                    ),
               ),
             ),
             const Icon(

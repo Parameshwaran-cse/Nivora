@@ -59,6 +59,8 @@ class _MapScreenState extends State<MapScreen> {
                       children: [
                         Text(
                           loc.name,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                           style: Theme.of(context).textTheme.titleLarge,
                         ),
                         const SizedBox(height: 4),
@@ -129,10 +131,17 @@ class _MapScreenState extends State<MapScreen> {
         title: const Text('Locations'),
       ),
       body: locations.isEmpty
-          ? const Center(
-              child: Text(
-                'No locations available',
-                style: TextStyle(color: Colors.white54, fontSize: 16),
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.map_rounded, size: 64, color: Colors.grey.shade700),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'No locations available.',
+                    style: TextStyle(color: Colors.grey, fontSize: 16),
+                  ),
+                ],
               ),
             )
           : ListView.builder(
@@ -192,6 +201,8 @@ class _MapScreenState extends State<MapScreen> {
                         ),
                         title: Text(
                           loc.name,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                         subtitle: Padding(

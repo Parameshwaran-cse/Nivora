@@ -177,15 +177,28 @@ class _AdminFacultyScreenState extends State<AdminFacultyScreen> {
                       margin: const EdgeInsets.only(bottom: 12),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                       child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: Colors.white10,
-                          backgroundImage: fac.photoUrl != null
-                              ? CachedNetworkImageProvider(fac.photoUrl!)
-                              : null,
-                          child: fac.photoUrl == null
-                              ? const Icon(Icons.person_rounded, color: Colors.white54)
-                              : null,
-                        ),
+                        leading: fac.photoUrl != null
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(20),
+                                child: CachedNetworkImage(
+                                  imageUrl: fac.photoUrl!,
+                                  width: 40,
+                                  height: 40,
+                                  fit: BoxFit.cover,
+                                  placeholder: (context, url) => const CircleAvatar(
+                                    backgroundColor: Colors.white10,
+                                    child: Icon(Icons.person_rounded, color: Colors.white54),
+                                  ),
+                                  errorWidget: (context, url, error) => const CircleAvatar(
+                                    backgroundColor: Colors.white10,
+                                    child: Icon(Icons.person_rounded, color: Colors.white54),
+                                  ),
+                                ),
+                              )
+                            : const CircleAvatar(
+                                backgroundColor: Colors.white10,
+                                child: Icon(Icons.person_rounded, color: Colors.white54),
+                              ),
                         title: Row(
                           children: [
                             Expanded(

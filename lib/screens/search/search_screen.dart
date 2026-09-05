@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../providers/faculty_provider.dart';
 import '../../models/faculty.dart';
 import '../../utils/theme.dart';
@@ -52,10 +53,17 @@ class _SearchScreenState extends State<SearchScreen> {
                   builder: (context, provider, child) {
                     final query = _searchController.text.trim();
                     if (query.isEmpty) {
-                      return const Center(
-                        child: Text(
-                          'Type a name to search',
-                          style: TextStyle(color: Colors.grey),
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.search_rounded, size: 64, color: Colors.grey.shade700),
+                            const SizedBox(height: 16),
+                            const Text(
+                              'Type a name to search',
+                              style: TextStyle(color: Colors.grey, fontSize: 16),
+                            ),
+                          ],
                         ),
                       );
                     }
@@ -68,10 +76,17 @@ class _SearchScreenState extends State<SearchScreen> {
                     final results = provider.filteredFaculty;
 
                     if (results.isEmpty) {
-                      return const Center(
-                        child: Text(
-                          'No faculty found matching your search.',
-                          style: TextStyle(color: Colors.grey),
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.search_off_rounded, size: 64, color: Colors.grey.shade700),
+                            const SizedBox(height: 16),
+                            const Text(
+                              'No faculty found matching your search.',
+                              style: TextStyle(color: Colors.grey, fontSize: 16),
+                            ),
+                          ],
                         ),
                       );
                     }
@@ -158,6 +173,8 @@ class _SearchScreenState extends State<SearchScreen> {
                 children: [
                   Text(
                     faculty.canShowName ? faculty.name : 'Unknown Faculty',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.w600,
                       fontSize: 16,
@@ -166,6 +183,8 @@ class _SearchScreenState extends State<SearchScreen> {
                   const SizedBox(height: 4),
                   Text(
                     subtitleText,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: Colors.grey,
                           fontSize: 14,
@@ -185,28 +204,37 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   Widget _buildAvatar(BuildContext context, Faculty faculty) {
+    final initial = faculty.canShowName && faculty.name.isNotEmpty 
+        ? faculty.name[0].toUpperCase() 
+        : '?';
+
+    Widget fallbackAvatar = CircleAvatar(
+      radius: 24,
+      backgroundColor: AppTheme.accentFill,
+      child: Text(
+        initial,
+        style: const TextStyle(
+          color: AppTheme.accentText,
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+
     if (faculty.canShowPhoto && faculty.photoUrl != null && faculty.photoUrl!.isNotEmpty) {
-      return CircleAvatar(
-        radius: 24,
-        backgroundImage: NetworkImage(faculty.photoUrl!),
-        backgroundColor: AppTheme.accentFill,
-      );
-    } else {
-      final initial = faculty.canShowName && faculty.name.isNotEmpty 
-          ? faculty.name[0].toUpperCase() 
-          : '?';
-      return CircleAvatar(
-        radius: 24,
-        backgroundColor: AppTheme.accentFill,
-        child: Text(
-          initial,
-          style: const TextStyle(
-            color: AppTheme.accentText,
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: CachedNetworkImage(
+          imageUrl: faculty.photoUrl!,
+          width: 48,
+          height: 48,
+          fit: BoxFit.cover,
+          placeholder: (context, url) => fallbackAvatar,
+          errorWidget: (context, url, error) => fallbackAvatar,
         ),
       );
+    } else {
+      return fallbackAvatar;
     }
   }
 }

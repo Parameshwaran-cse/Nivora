@@ -185,7 +185,16 @@ class _AdminDesignationsScreenState extends State<AdminDesignationsScreen> {
 
           final desigs = snapshot.data!;
           if (desigs.isEmpty) {
-            return const Center(child: Text('No designations found.', style: TextStyle(color: Colors.white54)));
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.badge_rounded, size: 64, color: Colors.grey.shade700),
+                  const SizedBox(height: 16),
+                  const Text('No designations found.', style: TextStyle(color: Colors.white54, fontSize: 16)),
+                ],
+              ),
+            );
           }
 
           return ListView.builder(
@@ -198,7 +207,12 @@ class _AdminDesignationsScreenState extends State<AdminDesignationsScreen> {
                 margin: const EdgeInsets.only(bottom: 12),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 child: ListTile(
-                  title: Text(desig.title, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  title: Text(
+                    desig.title, 
+                    maxLines: 2, 
+                    overflow: TextOverflow.ellipsis, 
+                    style: const TextStyle(fontWeight: FontWeight.bold)
+                  ),
                   subtitle: Text('Rank: ${desig.rank}', style: const TextStyle(color: Colors.white54)),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,

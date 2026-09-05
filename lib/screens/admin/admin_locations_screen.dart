@@ -72,11 +72,18 @@ class _AdminLocationsScreenState extends State<AdminLocationsScreen> {
 
           final locations = snapshot.data!;
           if (locations.isEmpty) {
-            return const Center(
-              child: Text(
-                'No locations found.\nTap + to add one.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white54, fontSize: 16),
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.place_rounded, size: 64, color: Colors.grey.shade700),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'No locations found.\nTap + to add one.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.white54, fontSize: 16),
+                  ),
+                ],
               ),
             );
           }
@@ -103,6 +110,8 @@ class _AdminLocationsScreenState extends State<AdminLocationsScreen> {
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   title: Text(
                     loc.name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                   subtitle: Padding(

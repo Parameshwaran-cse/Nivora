@@ -301,10 +301,16 @@ class FirestoreService {
     );
   }
 
-  /// Upload a faculty photo and return the download URL
   Future<String> uploadFacultyPhoto(File imageFile, String facultyId) async {
     final storageRef = FirebaseStorage.instance.ref().child('faculty_photos/$facultyId.jpg');
-    final uploadTask = storageRef.putFile(imageFile);
+    final bytes = await imageFile.readAsBytes();
+    
+    // Use putData instead of putFile. putFile can sometimes fail with 404 (Upload session terminated)
+    // on Android if resumable uploads encounter network/AppCheck quirks.
+    final uploadTask = storageRef.putData(
+      bytes,
+      SettableMetadata(contentType: 'image/jpeg'),
+    );
     final snapshot = await uploadTask;
     return await snapshot.ref.getDownloadURL();
   }

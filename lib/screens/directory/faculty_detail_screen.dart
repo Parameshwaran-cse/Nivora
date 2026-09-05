@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../models/faculty.dart';
 import '../../providers/faculty_provider.dart';
 import '../../utils/theme.dart';
@@ -62,31 +63,26 @@ class _FacultyDetailScreenState extends State<FacultyDetailScreen> {
     return Column(
       children: [
         if (widget.faculty.canShowPhoto && widget.faculty.photoUrl != null && widget.faculty.photoUrl!.isNotEmpty)
-          CircleAvatar(
-            radius: 60,
-            backgroundImage: NetworkImage(widget.faculty.photoUrl!),
-            backgroundColor: AppTheme.darkAccent,
+          ClipRRect(
+            borderRadius: BorderRadius.circular(60),
+            child: CachedNetworkImage(
+              imageUrl: widget.faculty.photoUrl!,
+              width: 120,
+              height: 120,
+              fit: BoxFit.cover,
+              placeholder: (context, url) => _buildFallbackAvatar(),
+              errorWidget: (context, url, error) => _buildFallbackAvatar(),
+            ),
           )
         else
-          CircleAvatar(
-            radius: 60,
-            backgroundColor: AppTheme.darkAccent,
-            child: Text(
-              widget.faculty.canShowName && widget.faculty.name.isNotEmpty 
-                  ? widget.faculty.name[0].toUpperCase() 
-                  : '?',
-              style: const TextStyle(
-                color: AppTheme.darkEmphasizedText,
-                fontSize: 48,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
+          _buildFallbackAvatar(),
         const SizedBox(height: 16),
         Text(
           widget.faculty.canShowName ? widget.faculty.name : 'Name Hidden',
           style: Theme.of(context).textTheme.displayLarge?.copyWith(fontSize: 28),
           textAlign: TextAlign.center,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
         ),
         const SizedBox(height: 4),
         Text(
@@ -96,10 +92,29 @@ class _FacultyDetailScreenState extends State<FacultyDetailScreen> {
             fontSize: 16,
           ),
           textAlign: TextAlign.center,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
         ),
         const SizedBox(height: 16),
         _buildStatusBadge(),
       ],
+    );
+  }
+
+  Widget _buildFallbackAvatar() {
+    return CircleAvatar(
+      radius: 60,
+      backgroundColor: AppTheme.darkAccent,
+      child: Text(
+        widget.faculty.canShowName && widget.faculty.name.isNotEmpty 
+            ? widget.faculty.name[0].toUpperCase() 
+            : '?',
+        style: const TextStyle(
+          color: AppTheme.darkEmphasizedText,
+          fontSize: 48,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
     );
   }
 
@@ -373,6 +388,8 @@ class _FacultyDetailScreenState extends State<FacultyDetailScreen> {
                 const SizedBox(height: 4),
                 Text(
                   value,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.w500,
                     fontSize: 16,

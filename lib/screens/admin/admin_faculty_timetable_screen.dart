@@ -157,7 +157,16 @@ class _AdminFacultyTimetableScreenState extends State<AdminFacultyTimetableScree
 
         final items = snapshot.data!;
         if (items.isEmpty) {
-          return const Center(child: Text('No timetables found.', style: TextStyle(color: Colors.white54)));
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.calendar_month_rounded, size: 64, color: Colors.grey.shade700),
+                const SizedBox(height: 16),
+                const Text('No timetables found.', style: TextStyle(color: Colors.white54, fontSize: 16)),
+              ],
+            ),
+          );
         }
 
         return ListView.builder(
@@ -172,6 +181,8 @@ class _AdminFacultyTimetableScreenState extends State<AdminFacultyTimetableScree
               child: ListTile(
                 title: Text(
                   tb.term,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
                 subtitle: Text('${tb.slots.length} slots defined', style: const TextStyle(color: Colors.white54)),
@@ -232,7 +243,16 @@ class _AdminFacultyTimetableScreenState extends State<AdminFacultyTimetableScree
 
         final items = snapshot.data!;
         if (items.isEmpty) {
-          return const Center(child: Text('No exceptions found.', style: TextStyle(color: Colors.white54)));
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.event_busy_rounded, size: 64, color: Colors.grey.shade700),
+                const SizedBox(height: 16),
+                const Text('No exceptions found.', style: TextStyle(color: Colors.white54, fontSize: 16)),
+              ],
+            ),
+          );
         }
 
         return ListView.builder(
@@ -250,7 +270,12 @@ class _AdminFacultyTimetableScreenState extends State<AdminFacultyTimetableScree
                   dateStr,
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
-                subtitle: Text(ex.type.toUpperCase() + (ex.note != null && ex.note!.isNotEmpty ? ' • ${ex.note}' : ''), style: const TextStyle(color: Colors.white54)),
+                subtitle: Text(
+                  ex.type.toUpperCase() + (ex.note != null && ex.note!.isNotEmpty ? ' • ${ex.note}' : ''), 
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: Colors.white54)
+                ),
                 trailing: IconButton(
                   icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 20),
                   onPressed: _isProcessing ? null : () => _confirmDeleteException(ex),

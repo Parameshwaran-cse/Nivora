@@ -180,7 +180,16 @@ class _AdminDepartmentsScreenState extends State<AdminDepartmentsScreen> {
 
           final depts = snapshot.data!;
           if (depts.isEmpty) {
-            return const Center(child: Text('No departments found.', style: TextStyle(color: Colors.white54)));
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.business_rounded, size: 64, color: Colors.grey.shade700),
+                  const SizedBox(height: 16),
+                  const Text('No departments found.', style: TextStyle(color: Colors.white54, fontSize: 16)),
+                ],
+              ),
+            );
           }
 
           return ListView.builder(
@@ -193,7 +202,12 @@ class _AdminDepartmentsScreenState extends State<AdminDepartmentsScreen> {
                 margin: const EdgeInsets.only(bottom: 12),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 child: ListTile(
-                  title: Text(dept.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  title: Text(
+                    dept.name, 
+                    maxLines: 2, 
+                    overflow: TextOverflow.ellipsis, 
+                    style: const TextStyle(fontWeight: FontWeight.bold)
+                  ),
                   subtitle: Text(dept.shortCode, style: const TextStyle(color: Colors.white54)),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
