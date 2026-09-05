@@ -59,27 +59,14 @@ class HomeScreen extends StatelessWidget {
       padding: const EdgeInsets.all(24.0),
       child: Row(
         children: [
-          Container(
+          Image.asset(
+            'assets/images/logo2.png',
             width: 40,
             height: 40,
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primary,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Center(
-              child: Text(
-                'N',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
           ),
           const SizedBox(width: 12),
           Text(
-            'Nivora',
+            'YATA',
             style: Theme.of(context).textTheme.displayLarge?.copyWith(
               fontSize: 28,
             ),

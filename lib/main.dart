@@ -11,11 +11,11 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await FirebaseService.initialize();
   
-  runApp(const NivoraApp());
+  runApp(const YataApp());
 }
 
-class NivoraApp extends StatelessWidget {
-  const NivoraApp({super.key});
+class YataApp extends StatelessWidget {
+  const YataApp({super.key});
 
   @override
   Widget build(BuildContext context) {
